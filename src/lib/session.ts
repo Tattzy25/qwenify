@@ -6,7 +6,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { AudioPlayer, levels } from './audio';
 import type { AgentMode, CallState, Caption, ToolEvent } from './types';
-import { arrayBufferToBase64, float32ToPcm16Base64 } from './utils';
+import { arrayBufferToBase64, float32ToPcm16Base64, loadLS } from './utils';
 import type { McpHttpClient } from './mcp';
 import type { GeminiFunctionDeclaration } from './schema';
 
@@ -137,9 +137,12 @@ export class LiveCall {
           .map((d) => d.name)
           .join(', ')}${this.declarations.length > 12 ? '…' : ''}). Call them whenever they would help, and summarize results in one short spoken sentence.`
       : '';
+    const voice = loadLS<string>('halo.voice', 'Leda');
+    const thinking = loadLS<string>('halo.thinking', 'minimal');
     const config: Record<string, unknown> = {
       responseModalities: ['AUDIO'],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Leda' } } },
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+      thinkingConfig: { thinkingLevel: thinking },
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT + toolNote }] },

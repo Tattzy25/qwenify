@@ -60,13 +60,13 @@ export function ControlDock(p: Props) {
   return (
     <div className="fixed inset-x-0 bottom-7 z-40 flex justify-center px-4">
       <div className="anim-rise flex items-center gap-2.5 rounded-full border border-white/10 bg-[#14161b]/85 py-2.5 pl-3 pr-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
-        <RoundBtn label={p.micOn ? 'Mute microphone' : 'Unmute microphone'} active={!p.micOn} onClick={p.onToggleMic}>
+        <RoundBtn label={p.micOn ? 'Mute microphone — M' : 'Unmute microphone — M'} active={!p.micOn} onClick={p.onToggleMic}>
           {p.micOn ? <IconMic size={21} /> : <IconMicOff size={21} />}
         </RoundBtn>
-        <RoundBtn label={p.camOn ? 'Turn camera off' : 'Turn camera on'} active={!p.camOn} onClick={p.onToggleCam}>
+        <RoundBtn label={p.camOn ? 'Turn camera off — V' : 'Turn camera on — V'} active={!p.camOn} onClick={p.onToggleCam}>
           {p.camOn ? <IconCam size={21} /> : <IconCamOff size={21} />}
         </RoundBtn>
-        <RoundBtn label={p.captionsOn ? 'Hide live captions' : 'Show live captions'} active={!p.captionsOn} onClick={p.onToggleCaptions}>
+        <RoundBtn label={p.captionsOn ? 'Hide live captions — C' : 'Show live captions — C'} active={!p.captionsOn} onClick={p.onToggleCaptions}>
           <IconCaptions size={21} />
         </RoundBtn>
 

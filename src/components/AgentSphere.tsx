@@ -15,6 +15,7 @@ uniform float uTime;
 uniform float uAgent;  // agent voice energy 0..1
 uniform float uMic;    // user voice energy 0..1
 uniform float uMode;   // 0 idle · 1 waking · 2 listening · 3 speaking
+uniform vec2  uPointer; // eased pointer -1..1
 
 float hash31(vec3 p) {
   p = fract(p * 0.1031);
@@ -96,7 +97,7 @@ void main() {
 
   // ---- sphere ----
   float R = 0.95 + 0.018 * sin(t * 0.7) + 0.05 * uAgent;
-  vec3 center = vec3(0.0, 0.02 * sin(t * 0.5), 0.0);
+  vec3 center = vec3(uPointer.x * 0.10, 0.02 * sin(t * 0.5) - uPointer.y * 0.07, 0.0);
   vec3 ro = vec3(0.0, 0.0, 3.1) - center;
   vec3 rd = normalize(vec3(uv, -1.55));
   float b = dot(ro, rd);
@@ -208,6 +209,14 @@ export function AgentSphere({ mode }: { mode: AgentMode }) {
     const uAgent = gl.getUniformLocation(prog, 'uAgent');
     const uMic = gl.getUniformLocation(prog, 'uMic');
     const uMode = gl.getUniformLocation(prog, 'uMode');
+    const uPointer = gl.getUniformLocation(prog, 'uPointer');
+
+    const pointerTarget = { x: 0, y: 0 };
+    const onPointer = (e: PointerEvent): void => {
+      pointerTarget.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointerTarget.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener('pointermove', onPointer, { passive: true });
 
     const resize = (): void => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -226,6 +235,7 @@ export function AgentSphere({ mode }: { mode: AgentMode }) {
     let agentSm = 0;
     let micSm = 0;
     let modeSm = 0;
+    const pointerSm = { x: 0, y: 0 };
     let raf = 0;
     const t0 = performance.now();
 
@@ -238,12 +248,15 @@ export function AgentSphere({ mode }: { mode: AgentMode }) {
       agentSm += (aT - agentSm) * (aT > agentSm ? 0.35 : 0.10);
       micSm += (mT - micSm) * (mT > micSm ? 0.35 : 0.10);
       modeSm += (moT - modeSm) * 0.07;
+      pointerSm.x += (pointerTarget.x - pointerSm.x) * 0.035;
+      pointerSm.y += (pointerTarget.y - pointerSm.y) * 0.035;
 
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform1f(uTime, t);
       gl.uniform1f(uAgent, agentSm);
       gl.uniform1f(uMic, micSm);
       gl.uniform1f(uMode, modeSm);
+      gl.uniform2f(uPointer, pointerSm.x, pointerSm.y);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       raf = requestAnimationFrame(frame);
     };
@@ -251,6 +264,7 @@ export function AgentSphere({ mode }: { mode: AgentMode }) {
 
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener('pointermove', onPointer);
       ro.disconnect();
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };

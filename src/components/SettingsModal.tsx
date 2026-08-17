@@ -1,6 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import type { McpStatus } from '../lib/types';
-import { cx, hostOf } from '../lib/utils';
+import { cx, hostOf, loadLS, saveLS } from '../lib/utils';
+
+const VOICES = ['Puck', 'Zephyr', 'Leda', 'Kore', 'Fenrir', 'Enceladus', 'Autonoe', 'Orus', 'Aoede'];
+const THINKING: Array<[string, string]> = [
+  ['minimal', 'Minimal — fastest'],
+  ['low', 'Low'],
+  ['medium', 'Medium'],
+  ['high', 'High — deepest'],
+];
+
+const selectCls =
+  'h-11 w-full cursor-pointer appearance-none rounded-xl border border-white/10 bg-black/30 pl-3.5 pr-9 font-mono text-[13px] text-ink transition-colors focus:border-accent/50 focus:outline-none';
+
+function Chevron() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-dim"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
 import {
   IconAlert,
   IconCheck,
@@ -33,6 +62,8 @@ const field =
 export function SettingsModal(p: Props) {
   const [showKey, setShowKey] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [voice, setVoice] = useState(() => loadLS('halo.voice', 'Leda'));
+  const [thinking, setThinking] = useState(() => loadLS('halo.thinking', 'minimal'));
   const keyRef = useRef<HTMLInputElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
 
@@ -229,6 +260,54 @@ export function SettingsModal(p: Props) {
           </div>
           <p className="mt-3 text-center font-mono text-[10px] text-dim/70">
             Connected tools are declared to the live agent automatically.
+          </p>
+        </section>
+
+        <div className="my-5 h-px bg-white/[0.07]" />
+
+        {/* Voice & thinking */}
+        <section>
+          <div className={label}>Agent voice & thinking</div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <select
+                value={voice}
+                onChange={(e) => {
+                  setVoice(e.target.value);
+                  saveLS('halo.voice', e.target.value);
+                }}
+                className={selectCls}
+                aria-label="Agent voice"
+              >
+                {VOICES.map((v) => (
+                  <option key={v} value={v} className="bg-[#14161b] text-ink">
+                    {v}
+                  </option>
+                ))}
+              </select>
+              <Chevron />
+            </div>
+            <div className="relative">
+              <select
+                value={thinking}
+                onChange={(e) => {
+                  setThinking(e.target.value);
+                  saveLS('halo.thinking', e.target.value);
+                }}
+                className={selectCls}
+                aria-label="Thinking level"
+              >
+                {THINKING.map(([v, l]) => (
+                  <option key={v} value={v} className="bg-[#14161b] text-ink">
+                    {l}
+                  </option>
+                ))}
+              </select>
+              <Chevron />
+            </div>
+          </div>
+          <p className="mt-1.5 font-mono text-[10.5px] text-dim/80">
+            Applied on the next call — thinking trades a little latency for deeper reasoning.
           </p>
         </section>
       </div>

@@ -33,6 +33,10 @@ export default function App() {
   apiKeyRef.current = apiKey;
   const seqRef = useRef(0);
   const timerRef = useRef(0);
+  const [summary, setSummary] = useState<{ secs: number; lines: number; toolCalls: number } | null>(null);
+  const callStartedRef = useRef<number | null>(null);
+  const captionsRef = useRef<Caption[]>([]);
+  const toolCallsRef = useRef(0);
 
   /* ---------- toasts ---------- */
   const pushToast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
@@ -42,14 +46,27 @@ export default function App() {
   }, []);
 
   /* ---------- live session events ---------- */
+  useEffect(() => {
+    captionsRef.current = captions;
+  }, [captions]);
+
   const onState = useCallback((s: CallState) => {
     setCallState(s);
     if (s === 'live') {
+      if (callStartedRef.current == null) {
+        callStartedRef.current = Date.now();
+        toolCallsRef.current = 0;
+      }
       setElapsed(0);
       window.clearInterval(timerRef.current);
       timerRef.current = window.setInterval(() => setElapsed((e) => e + 1), 1000);
     } else if (s === 'idle') {
       window.clearInterval(timerRef.current);
+      if (callStartedRef.current != null) {
+        const secs = Math.max(1, Math.round((Date.now() - callStartedRef.current) / 1000));
+        callStartedRef.current = null;
+        setSummary({ secs, lines: captionsRef.current.length, toolCalls: toolCallsRef.current });
+      }
     }
   }, []);
 
@@ -81,6 +98,7 @@ export default function App() {
   }, []);
 
   const onTool = useCallback((t: ToolEvent) => {
+    if (t.status === 'running') toolCallsRef.current += 1;
     setTools((prev) => {
       const idx = prev.findIndex((x) => x.id === t.id);
       if (idx >= 0) {
@@ -198,6 +216,24 @@ export default function App() {
     if (sessionRef.current?.isActive) void sessionRef.current.reloadTools(null);
   };
 
+  /* ---------- keyboard shortcuts ---------- */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || settingsOpen) return;
+      const k = e.key.toLowerCase();
+      if (k === 'm') toggleMic();
+      else if (k === 'v') toggleCam();
+      else if (k === 'c') setCaptionsOn((v) => !v);
+      else if (k === 'g') setSettingsOpen(true);
+      else if (k === 'e' && (callState === 'live' || callState === 'reconnecting')) endCall();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   /* ---------- render ---------- */
   const inCall = callState === 'live' || callState === 'reconnecting';
 
@@ -299,6 +335,44 @@ export default function App() {
         onToggleCam={toggleCam}
         onToggleCaptions={() => setCaptionsOn((v) => !v)}
       />
+
+      {/* ---------- call ended summary ---------- */}
+      {summary && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="anim-fade absolute inset-0 bg-black/60 backdrop-blur-[5px]"
+            onClick={() => {
+              setSummary(null);
+              setCaptions([]);
+              setTools([]);
+            }}
+          />
+          <div className="anim-pop relative w-[min(360px,92vw)] rounded-[24px] border border-white/10 bg-[#14161b] px-7 pb-6 pt-8 text-center shadow-[0_40px_120px_rgba(0,0,0,0.7)]">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-dim">
+              Call ended
+            </p>
+            <p className="mt-2 font-display text-[52px] font-bold leading-none tracking-tight tabular-nums">
+              {formatClock(summary.secs)}
+            </p>
+            <p className="mt-3 font-mono text-[11px] text-dim/85">
+              {summary.lines} caption line{summary.lines === 1 ? '' : 's'}
+              {summary.toolCalls > 0 &&
+                ` · ${summary.toolCalls} tool call${summary.toolCalls === 1 ? '' : 's'}`}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSummary(null);
+                setCaptions([]);
+                setTools([]);
+              }}
+              className="mt-6 h-11 rounded-full bg-[#e8e6e1] px-9 font-display text-[14px] font-semibold text-[#141519] transition-all hover:bg-white active:scale-95"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ---------- toasts ---------- */}
       <div className="pointer-events-none fixed inset-x-0 top-[70px] z-50 flex flex-col items-center gap-2 px-4">
