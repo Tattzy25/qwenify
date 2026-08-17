@@ -9,6 +9,8 @@ import type { AgentMode, CallState, Caption, ToolEvent } from './types';
 import { arrayBufferToBase64, float32ToPcm16Base64, loadLS } from './utils';
 import type { McpHttpClient } from './mcp';
 import type { GeminiFunctionDeclaration } from './schema';
+import { toCommerceBatch } from './commerce/normalize';
+import type { CommerceBatch } from './commerce/types';
 
 export const LIVE_MODEL = 'gemini-3.1-flash-live-preview';
 
@@ -24,6 +26,8 @@ export interface LiveCallEvents {
   onTool: (t: ToolEvent) => void;
   onStream: (s: MediaStream | null) => void;
   onNotice: (text: string, kind?: 'info' | 'success' | 'error') => void;
+  /** A renderable commerce batch derived from a tool result (or null to clear). */
+  onCommerce: (b: CommerceBatch | null) => void;
 }
 
 type FnCall = { id?: string; name: string; args?: Record<string, unknown> };
@@ -85,6 +89,7 @@ export class LiveCall {
     if (this.isActive) return;
     this.ended = false;
     this.mcp = mcp;
+    this.events.onCommerce(null);
     this.declarations = mcp?.prepared.declarations ?? [];
     this.setState('connecting');
     this.setMode('waking');
@@ -358,6 +363,20 @@ export class LiveCall {
     }
   }
 
+  /* ---------------- user → agent text & images ---------------- */
+
+  sendText(text: string): void {
+    if (!this.session || !text.trim()) return;
+    this.session.sendRealtimeInput({ text: text.trim() });
+  }
+
+  /** Shares a photo with the agent mid-call as a JPEG vision frame. */
+  async sendImageBlob(blob: Blob): Promise<void> {
+    if (!this.session) return;
+    const data = await blobToBase64Jpeg(blob, 1024, 0.78);
+    this.session.sendRealtimeInput({ video: { data, mimeType: 'image/jpeg' } });
+  }
+
   /* ---------------- inbound messages ---------------- */
 
   private handleMessage(msg: Record<string, any>): void {
@@ -463,6 +482,8 @@ export class LiveCall {
             status: isError ? 'error' : 'done',
             detail: text.slice(0, 120),
           });
+          const batch = toCommerceBatch(call.name, text);
+          if (batch) this.events.onCommerce(batch);
         } catch (err) {
           responses.push({
             id: call.id,
@@ -481,4 +502,37 @@ export class LiveCall {
       this.events.onNotice(`Tool response failed — ${(err as Error).message}`, 'error');
     }
   }
+}
+
+/* ---------------- image encoding helper ---------------- */
+
+function blobToBase64Jpeg(blob: Blob, maxEdge: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(
+        (b) => {
+          if (!b) {
+            reject(new Error('image encode failed'));
+            return;
+          }
+          b.arrayBuffer().then((buf) => resolve(arrayBufferToBase64(buf)));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('unreadable image'));
+    };
+    img.src = url;
+  });
 }

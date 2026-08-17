@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-lap: 750px;
   --font-display: "Space Grotesk", "Instrument Sans", sans-serif;
   --font-body: "Instrument Sans", "Helvetica Neue", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;

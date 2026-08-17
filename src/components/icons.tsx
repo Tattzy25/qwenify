@@ -141,6 +141,30 @@ export const IconEyeOff = (p: P) => (
   </svg>
 );
 
+export const IconImage = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4.5" width="18" height="15" rx="3" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="M3.5 17.5l4.8-4.7a1.2 1.2 0 0 1 1.7 0l6.5 6.2" />
+    <path d="M14.5 15.2l2.3-2.3a1.2 1.2 0 0 1 1.7 0l2 1.9" />
+  </svg>
+);
+
+export const IconBag = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5.5 8h13l-1.1 11.2a1.8 1.8 0 0 1-1.8 1.6H8.4a1.8 1.8 0 0 1-1.8-1.6z" />
+    <path d="M9 10.2V6.5a3 3 0 0 1 6 0v3.7" />
+  </svg>
+);
+
+export const IconCart = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3.5 5h2l2.2 10.5a1.6 1.6 0 0 0 1.6 1.3h7.6a1.6 1.6 0 0 0 1.6-1.2L20.5 8H6.2" />
+    <circle cx="10" cy="20" r="1.2" />
+    <circle cx="17" cy="20" r="1.2" />
+  </svg>
+);
+
 export const Logo = ({ size = 22, ...rest }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...rest}>
     <circle cx="12" cy="12" r="5.4" fill="currentColor" opacity="0.92" />
