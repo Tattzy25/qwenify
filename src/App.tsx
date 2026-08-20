@@ -4,6 +4,7 @@ import { Captions } from './components/Captions';
 import { CommerceTray } from './components/CommerceTray';
 import { ControlDock } from './components/ControlDock';
 import { PiPWindow } from './components/PiPWindow';
+import { ProductGrid } from './components/ProductGrid';
 import { IconAlert, IconKey, IconX, Logo } from './components/icons';
 import { discoverAgent, resolveProvision } from './lib/commerce/endpoint';
 import { createStorefront, type StorefrontBridge } from './lib/commerce/storefront';
@@ -33,6 +34,7 @@ export default function App() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [commerce, setCommerce] = useState<CommerceBatch | null>(null);
+  const [productGrid, setProductGrid] = useState<{ visible: boolean; products: ProductCardData[] }>({ visible: false, products: [] });
   const [ucp, setUcp] = useState<UcpStatus>({ phase: 'off', tools: 0 });
   const [capabilities, setCapabilities] = useState<string[]>([]);
   const [elapsed, setElapsed] = useState(0);
@@ -88,7 +90,15 @@ export default function App() {
 
   const onMode = useCallback((m: AgentMode) => setMode(m), []);
   const onStream = useCallback((s: MediaStream | null) => setStream(s), []);
-  const onCommerce = useCallback((b: CommerceBatch | null) => setCommerce(b), []);
+  const onCommerce = useCallback((b: CommerceBatch | null) => {
+    setCommerce(b);
+    // Show product grid in center of orb when products are returned
+    if (b?.kind === 'products' && b.items.length > 0) {
+      setProductGrid({ visible: true, products: b.items });
+    } else if (!b) {
+      setProductGrid({ visible: false, products: [] });
+    }
+  }, []);
 
   const onCaption = useCallback((c: Caption) => {
     setCaptions((prev) => {
@@ -282,6 +292,15 @@ export default function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-void font-body text-ink">
       <AgentSphere mode={mode} />
+
+      {/* ---------- product grid in center of orb ---------- */}
+      <ProductGrid
+        products={productGrid.products}
+        visible={productGrid.visible}
+        onClose={() => setProductGrid({ visible: false, products: [] })}
+        onAddToCart={addToCart}
+        onAgentSay={agentSay}
+      />
 
       {/* ---------- commerce tray ---------- */}
       {commerce && (

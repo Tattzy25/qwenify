@@ -1,8 +1,28 @@
+```
+# Dependencies
 node_modules/
-.next/
-dist/
-build/
-*.log
 
-.vercel
-.env*
+# Environment
+.env
+.env.local
+.env.*
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+.env
+.env.local
+```
