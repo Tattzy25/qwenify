@@ -1,0 +1,17 @@
+name: "Check Spelling"
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  spellcheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: streetsidesoftware/cspell-action@v8
+        with:
+          incremental_files_only: true
+          config: .cspell.json
